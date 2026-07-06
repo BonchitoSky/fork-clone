@@ -68,7 +68,9 @@ of it as a password that only works for specific things.
 2. Paste the token into the first field.
 3. Type the folder where you want repos to land, e.g. `C:\Users\LENOVO\Code`
    (it will be created automatically if it doesn't exist).
-4. Click **Test & Save**. You should see three green checkmarks:
+4. Optionally pick which corner of GitHub pages the ⚡ button should float
+   in (bottom-right by default) — the change applies instantly.
+5. Click **Test & Save**. You should see three green checkmarks:
    - ✓ Token: valid — signed in as *yourname*
    - ✓ Companion: responding — git version …
    - ✓ Folder path: looks valid

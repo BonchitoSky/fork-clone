@@ -4,18 +4,36 @@ const tokenInput = document.getElementById("token");
 const folderInput = document.getElementById("targetFolder");
 const button = document.getElementById("testSave");
 const results = document.getElementById("results");
+const posGrid = document.getElementById("posGrid");
 
 const WINDOWS_ABS_PATH = /^[A-Za-z]:\\/;
+let selectedPosition = "bottom-right";
 
-chrome.storage.local.get(["token", "targetFolder"]).then((items) => {
+chrome.storage.local.get(["token", "targetFolder", "buttonPosition"]).then((items) => {
   if (items.token) tokenInput.value = items.token;
   if (items.targetFolder) folderInput.value = items.targetFolder;
+  if (items.buttonPosition) selectPosition(items.buttonPosition);
 });
 
-function line(ok, text) {
+function selectPosition(pos) {
+  selectedPosition = pos;
+  for (const opt of posGrid.querySelectorAll(".pos-opt")) {
+    opt.classList.toggle("selected", opt.dataset.pos === pos);
+  }
+}
+
+posGrid.addEventListener("click", (e) => {
+  const opt = e.target.closest(".pos-opt");
+  if (!opt) return;
+  selectPosition(opt.dataset.pos);
+  // Save immediately so an open GitHub tab moves the button live.
+  chrome.storage.local.set({ buttonPosition: selectedPosition });
+});
+
+function row(ok, text) {
   const cls = ok ? "ok" : "bad";
   const mark = ok ? "✓" : "✗";
-  return '<span class="' + cls + '">' + mark + " " + text + "</span><br>";
+  return '<div class="row ' + cls + '"><span class="mark">' + mark + "</span><span>" + text + "</span></div>";
 }
 
 async function checkToken(token) {
@@ -58,6 +76,7 @@ function checkFolder(folder) {
 
 async function testAndSave() {
   button.disabled = true;
+  results.className = "visible";
   results.innerHTML = "Testing…";
   const token = tokenInput.value.trim();
   const folder = folderInput.value.trim();
@@ -65,23 +84,25 @@ async function testAndSave() {
   const folderCheck = checkFolder(folder);
   const [tokenCheck, companionCheck] = await Promise.all([checkToken(token), checkCompanion()]);
 
-  const toSave = { token, targetFolder: folder };
+  const toSave = { token, targetFolder: folder, buttonPosition: selectedPosition };
   if (tokenCheck.username) toSave.username = tokenCheck.username;
   await chrome.storage.local.set(toSave);
 
+  const allOk = tokenCheck.ok && companionCheck.ok && folderCheck.ok;
   results.innerHTML =
-    line(tokenCheck.ok, tokenCheck.text) +
-    line(companionCheck.ok, companionCheck.text) +
-    line(folderCheck.ok, folderCheck.text) +
-    (tokenCheck.ok && companionCheck.ok && folderCheck.ok
-      ? '<br><span class="ok">Saved. You\'re ready — open any GitHub repo and click the button.</span>'
-      : '<br><span class="bad">Saved, but fix the ✗ items above before using the button.</span>');
+    row(tokenCheck.ok, tokenCheck.text) +
+    row(companionCheck.ok, companionCheck.text) +
+    row(folderCheck.ok, folderCheck.text) +
+    (allOk
+      ? '<p class="summary ok">Saved. You\'re ready — open any GitHub repo and click the button.</p>'
+      : '<p class="summary bad">Saved, but fix the ✗ items above before using the button.</p>');
   button.disabled = false;
 }
 
 button.addEventListener("click", () => {
   testAndSave().catch((e) => {
-    results.innerHTML = line(false, "Unexpected error: " + e.message);
+    results.className = "visible";
+    results.innerHTML = row(false, "Unexpected error: " + e.message);
     button.disabled = false;
   });
 });

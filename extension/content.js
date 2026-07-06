@@ -1,6 +1,7 @@
 "use strict";
 
 const BUTTON_ID = "forkclone-button";
+const STYLE_ID = "forkclone-style";
 
 const RESERVED_FIRST_SEGMENTS = new Set([
   "settings", "notifications", "explore", "topics", "trending", "marketplace",
@@ -8,9 +9,17 @@ const RESERVED_FIRST_SEGMENTS = new Set([
   "features", "about", "pricing", "new", "search", "collections", "events"
 ]);
 
+const POSITIONS = {
+  "bottom-right": { bottom: "20px", right: "20px" },
+  "bottom-left":  { bottom: "20px", left: "20px" },
+  "top-right":    { top: "72px", right: "20px" },
+  "top-left":     { top: "72px", left: "20px" }
+};
+
 let state = "idle"; // idle | running | done | error | setup
 let revertTimer = null;
 let cachedUsername = null;
+let cachedPosition = "bottom-right";
 let lastPathname = location.pathname;
 
 function parseRepoFromPath() {
@@ -27,11 +36,34 @@ function isDarkTheme() {
   return false;
 }
 
+function ensureStyles() {
+  if (document.getElementById(STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = STYLE_ID;
+  style.textContent = [
+    "#" + BUTTON_ID + " { transition: transform .15s ease, box-shadow .15s ease, background .2s ease; }",
+    "#" + BUTTON_ID + ":hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.45); }",
+    "#" + BUTTON_ID + ":active:not(:disabled) { transform: translateY(0); }",
+    "@keyframes forkclone-pulse { 50% { opacity: .55; } }",
+    "#" + BUTTON_ID + ".running { animation: forkclone-pulse 1.2s ease-in-out infinite; cursor: progress; }"
+  ].join("\n");
+  document.head.appendChild(style);
+}
+
+function applyPosition(btn) {
+  btn.style.top = "";
+  btn.style.right = "";
+  btn.style.bottom = "";
+  btn.style.left = "";
+  const pos = POSITIONS[cachedPosition] || POSITIONS["bottom-right"];
+  for (const side in pos) btn.style[side] = pos[side];
+}
+
 function baseStyle(btn) {
   const dark = isDarkTheme();
   btn.style.cssText = [
-    "position: fixed", "right: 16px", "bottom: 16px", "z-index: 9999",
-    "padding: 8px 16px", "border-radius: 999px",
+    "position: fixed", "z-index: 9999",
+    "padding: 9px 18px", "border-radius: 999px",
     "font: 600 13px -apple-system, 'Segoe UI', system-ui, sans-serif",
     "cursor: pointer", "max-width: 380px", "overflow: hidden",
     "text-overflow: ellipsis", "white-space: nowrap",
@@ -40,6 +72,7 @@ function baseStyle(btn) {
     dark ? "color: #e6edf3" : "color: #24292f",
     dark ? "border: 1px solid #30363d" : "border: 1px solid #d0d7de"
   ].join(";");
+  applyPosition(btn);
 }
 
 function setVisual(btn, kind) {
@@ -64,6 +97,7 @@ function idleLabel() {
 function setIdle(btn) {
   state = "idle";
   btn.disabled = false;
+  btn.classList.remove("running");
   btn.title = "";
   btn.textContent = idleLabel();
   setVisual(btn, "neutral");
@@ -78,6 +112,7 @@ function scheduleRevert(btn, ms) {
 }
 
 function showError(btn, code, message) {
+  btn.classList.remove("running");
   if (code === "NO_SETTINGS") {
     state = "setup";
     btn.disabled = false;
@@ -97,6 +132,7 @@ function showError(btn, code, message) {
 function showDone(btn, path) {
   state = "done";
   btn.disabled = false;
+  btn.classList.remove("running");
   btn.textContent = "✓ Cloned to " + path;
   btn.title = path;
   setVisual(btn, "success");
@@ -108,6 +144,7 @@ function startFlow(btn) {
   if (!info) return;
   state = "running";
   btn.disabled = true;
+  btn.classList.add("running");
   btn.title = "";
   setVisual(btn, "neutral");
   btn.textContent = "Starting…";
@@ -156,6 +193,7 @@ function injectOrRemoveButton() {
     if (state === "idle") existing.textContent = idleLabel();
     return;
   }
+  ensureStyles();
   const btn = document.createElement("button");
   btn.id = BUTTON_ID;
   btn.type = "button";
@@ -175,16 +213,24 @@ function onSoftNavigation() {
   injectOrRemoveButton();
 }
 
-chrome.storage.local.get("username").then((items) => {
+chrome.storage.local.get(["username", "buttonPosition"]).then((items) => {
   cachedUsername = items.username || null;
+  if (items.buttonPosition) cachedPosition = items.buttonPosition;
   injectOrRemoveButton();
+  const btn = document.getElementById(BUTTON_ID);
+  if (btn) applyPosition(btn);
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes.username) {
+  if (area !== "local") return;
+  const btn = document.getElementById(BUTTON_ID);
+  if (changes.username) {
     cachedUsername = changes.username.newValue || null;
-    const btn = document.getElementById(BUTTON_ID);
     if (btn && state === "idle") btn.textContent = idleLabel();
+  }
+  if (changes.buttonPosition) {
+    cachedPosition = changes.buttonPosition.newValue || "bottom-right";
+    if (btn) applyPosition(btn);
   }
 });
 
