@@ -1,0 +1,137 @@
+# ⚡ Fork & Clone
+
+One click on any GitHub repository page → the repo is **forked to your GitHub
+account** and **cloned as a real git repository** into a folder on your PC.
+No ZIP files, no copying URLs, no terminal.
+
+It has two parts that you install once:
+
+| Part | What it is | Why it's needed |
+|---|---|---|
+| **Chrome extension** | Adds the ⚡ button to GitHub and talks to the GitHub API | Chrome extensions can't run programs on your PC… |
+| **Windows companion** | A tiny local helper that runs `git clone` for the extension | …so this helper does the actual cloning, via Chrome's official "native messaging" channel |
+
+Everything runs on your computer. The only server contacted is
+`api.github.com`, using your own token. Nothing is sent anywhere else.
+
+---
+
+## Setup (about 5 minutes, done once)
+
+### Step 0 — Make sure Git for Windows is installed
+
+Open the Start menu, type `cmd`, press Enter, type `git --version`, press
+Enter. If you see a version number, you're fine. If not, install it from
+<https://git-scm.com/download/win> (keep all default options — the defaults
+include the *Git Credential Manager*, which you'll want later for pushing).
+
+### Step 1 — Load the extension in Chrome
+
+1. Open Chrome and go to `chrome://extensions` (type it in the address bar).
+2. Turn **on** the **Developer mode** switch in the top-right corner.
+3. Click the **Load unpacked** button (top-left).
+4. Pick the `fork-clone\extension` folder and click **Select Folder**.
+5. A card named **Fork & Clone** appears. Under its name there is a long
+   line of 32 letters labelled **ID** — that's the *extension ID*.
+   Select it and copy it (Ctrl+C). You need it in the next step.
+
+### Step 2 — Install the Windows companion
+
+1. Open the `fork-clone\companion` folder in File Explorer.
+2. Double-click **`install.bat`**.
+3. A black window opens and asks for the extension ID — paste it
+   (right-click → Paste, or Ctrl+V) and press Enter.
+4. It prints "Installed — restart Chrome…". Close the window.
+5. **Fully close and reopen Chrome** (Chrome only reads the companion
+   registration on startup).
+
+> No admin prompt appears — the companion registers only for your own
+> Windows user account (HKCU registry), which is all Chrome needs.
+
+### Step 3 — Create a GitHub token
+
+The extension needs permission to fork repos on your behalf and to see your
+private repos. GitHub grants that through a *Personal Access Token* — think
+of it as a password that only works for specific things.
+
+1. Open this link (it pre-fills everything):
+   <https://github.com/settings/tokens/new?scopes=repo&description=Fork%20and%20Clone>
+2. Scroll down, pick an expiration (or "No expiration"), click
+   **Generate token**.
+3. Copy the token that starts with `ghp_` — **you can only see it once**.
+
+### Step 4 — Configure the extension
+
+1. Go to `chrome://extensions`, find **Fork & Clone**, click **Details**,
+   then **Extension options**. (Or right-click the extension's icon →
+   Options.)
+2. Paste the token into the first field.
+3. Type the folder where you want repos to land, e.g. `C:\Users\LENOVO\Code`
+   (it will be created automatically if it doesn't exist).
+4. Click **Test & Save**. You should see three green checkmarks:
+   - ✓ Token: valid — signed in as *yourname*
+   - ✓ Companion: responding — git version …
+   - ✓ Folder path: looks valid
+
+If anything shows ✗, the message next to it says what to fix (see the
+troubleshooting table below).
+
+---
+
+## Using it
+
+1. Visit any repository on GitHub, e.g. `https://github.com/octocat/Hello-World`.
+2. A pill-shaped **⚡ Fork & Clone** button floats at the bottom-right.
+   (On your *own* repos it says **⚡ Clone**, because there's nothing to fork.)
+3. Click it. The button narrates progress:
+   `Forking…` → `Waiting for fork…` → `Cloning…`
+4. A few seconds later it turns green:
+   **✓ Cloned to C:\Users\LENOVO\Code\Hello-World**
+   That folder is now a full git repository — complete history, with
+   `origin` pointing at **your fork**.
+
+Notes:
+
+- Click the button again on the same repo and you get a second copy in
+  `Hello-World-2` — it never overwrites or deletes anything.
+- If a fork already exists in your account, that's fine — it clones the
+  existing fork.
+- Big repositories can take minutes to clone; the button stays on
+  `Cloning…` until git finishes. Just leave it alone.
+
+## Pushing your changes back (first time only)
+
+The clone uses a normal HTTPS remote, so the first time you run `git push`,
+a **GitHub sign-in window** pops up — that's the *Git Credential Manager*
+that came with Git for Windows. Sign in with your browser once; it caches
+the credentials and every later push is silent. (Your extension token is
+**not** embedded in the repository — that's deliberate, it keeps the token
+out of `git remote -v` and out of any files on disk.)
+
+---
+
+## Troubleshooting
+
+| Button shows | Meaning | Fix |
+|---|---|---|
+| `⚙ Setup needed — click` (`NO_SETTINGS`) | Token or target folder not saved yet | Click the button — it opens the options page. Fill both fields, press **Test & Save** |
+| `✗ Token rejected…` (`BAD_TOKEN`) | GitHub refused your token (expired, revoked, or wrong scope) | Create a fresh token via the link in options (make sure the `repo` scope is checked) and Test & Save again |
+| `✗ Companion app not installed…` (`NO_COMPANION`) | Chrome can't find the local helper | Run `companion\install.bat` again (paste the correct extension ID), then **restart Chrome completely** |
+| `✗ GitHub is still creating the fork…` (`FORK_TIMEOUT`) | Very large repo — GitHub needs more time to build your fork | Wait a minute, click the button again — it will find the now-ready fork and clone it |
+| `✗ …` other messages (`CLONE_FAILED`) | git itself failed; the tooltip (hover the button) shows git's exact words | Common causes: no internet, disk full, or an org repo that requires SSO — for SSO, open the token page on GitHub and press **Authorize** next to the organization |
+
+Other oddities:
+
+- **Three checkmarks were green yesterday, companion ✗ today** — did Chrome
+  update or did you move the `fork-clone` folder? Moving the folder breaks
+  the registered path; run `install.bat` again from the new location.
+- **Button doesn't appear on a repo page** — refresh the page once; if it
+  still doesn't appear, check the extension is enabled at `chrome://extensions`.
+
+## Uninstalling
+
+1. In the `companion` folder: right-click **`uninstall.ps1`** → **Run with
+   PowerShell**. This removes the registry entry and the generated
+   `com.forkclone.host.json`. It does **not** touch any repos you cloned.
+2. Go to `chrome://extensions` and click **Remove** on the Fork & Clone card.
+3. Optionally, delete the token at <https://github.com/settings/tokens>.

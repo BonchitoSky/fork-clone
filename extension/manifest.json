@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Fork & Clone",
+  "version": "1.0.0",
+  "description": "One click: fork the GitHub repo you're viewing and git-clone your fork into a local folder.",
+  "permissions": ["storage", "nativeMessaging"],
+  "host_permissions": ["https://api.github.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

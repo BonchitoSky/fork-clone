@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fork &amp; Clone — Options</title>
+  <style>
+    body {
+      font: 14px -apple-system, "Segoe UI", system-ui, sans-serif;
+      max-width: 560px;
+      margin: 32px auto;
+      padding: 0 16px;
+      color: #24292f;
+    }
+    h1 { font-size: 20px; }
+    label { display: block; font-weight: 600; margin: 20px 0 4px; }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    .help { font-size: 12px; color: #57606a; margin-top: 4px; }
+    button {
+      margin-top: 24px;
+      padding: 8px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: #1f883d;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    #results { margin-top: 16px; font-size: 14px; line-height: 1.8; white-space: pre-line; }
+    .ok { color: #1a7f37; }
+    .bad { color: #cf222e; }
+  </style>
+</head>
+<body>
+  <h1>⚡ Fork &amp; Clone — Setup</h1>
+
+  <label for="token">GitHub Personal Access Token</label>
+  <input type="password" id="token" autocomplete="off" placeholder="ghp_...">
+  <p class="help">
+    Create one here (classic token, <code>repo</code> scope pre-selected):
+    <a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Fork%20and%20Clone" target="_blank" rel="noopener">
+      github.com/settings/tokens/new</a>.
+    The token stays on this computer only (chrome.storage.local — never synced).
+  </p>
+
+  <label for="targetFolder">Target folder for clones</label>
+  <input type="text" id="targetFolder" placeholder="C:\Users\you\Code">
+  <p class="help">Absolute Windows path. It will be created if it doesn't exist. Each repo lands in its own subfolder.</p>
+
+  <button id="testSave" type="button">Test &amp; Save</button>
+
+  <div id="results"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>
