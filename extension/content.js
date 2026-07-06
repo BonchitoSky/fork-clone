@@ -1,6 +1,7 @@
 "use strict";
 
 const BUTTON_ID = "forkclone-button";
+const CONFIRM_ID = "forkclone-confirm";
 const STYLE_ID = "forkclone-style";
 
 const RESERVED_FIRST_SEGMENTS = new Set([
@@ -16,7 +17,7 @@ const POSITIONS = {
   "top-left":     { top: "72px", left: "20px" }
 };
 
-let state = "idle"; // idle | running | done | error | setup
+let state = "idle"; // idle | confirm | running | done | error | setup
 let revertTimer = null;
 let cachedUsername = null;
 let cachedPosition = "bottom-right";
@@ -45,7 +46,13 @@ function ensureStyles() {
     "#" + BUTTON_ID + ":hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.45); }",
     "#" + BUTTON_ID + ":active:not(:disabled) { transform: translateY(0); }",
     "@keyframes forkclone-pulse { 50% { opacity: .55; } }",
-    "#" + BUTTON_ID + ".running { animation: forkclone-pulse 1.2s ease-in-out infinite; cursor: progress; }"
+    "#" + BUTTON_ID + ".running { animation: forkclone-pulse 1.2s ease-in-out infinite; cursor: progress; }",
+    "#" + CONFIRM_ID + " { position: fixed; z-index: 9999; display: flex; align-items: center; gap: 10px;" +
+      " padding: 10px 14px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.4);" +
+      " font: 500 13px -apple-system, 'Segoe UI', system-ui, sans-serif; max-width: 420px; }",
+    "#" + CONFIRM_ID + " button { padding: 6px 14px; border-radius: 999px; cursor: pointer;" +
+      " font: 600 12px -apple-system, 'Segoe UI', system-ui, sans-serif; transition: filter .15s ease; }",
+    "#" + CONFIRM_ID + " button:hover { filter: brightness(1.15); }"
   ].join("\n");
   document.head.appendChild(style);
 }
@@ -171,6 +178,71 @@ function startFlow(btn) {
   port.postMessage({ owner: info.owner, repo: info.repo });
 }
 
+function removeConfirm() {
+  const panel = document.getElementById(CONFIRM_ID);
+  if (panel) panel.remove();
+  const btn = document.getElementById(BUTTON_ID);
+  if (btn) btn.style.display = "";
+  if (state === "confirm") state = "idle";
+}
+
+function showConfirm(btn) {
+  const info = parseRepoFromPath();
+  if (!info) return;
+  state = "confirm";
+  btn.style.display = "none";
+
+  const dark = isDarkTheme();
+  const isOwn = cachedUsername && info.owner.toLowerCase() === cachedUsername.toLowerCase();
+  const panel = document.createElement("div");
+  panel.id = CONFIRM_ID;
+  panel.style.background = dark ? "#21262d" : "#ffffff";
+  panel.style.color = dark ? "#e6edf3" : "#24292f";
+  panel.style.border = "1px solid " + (dark ? "#30363d" : "#d0d7de");
+
+  const label = document.createElement("span");
+  label.textContent = (isOwn ? "Clone " : "Fork & clone ") + info.owner + "/" + info.repo + "?";
+  label.style.cssText = "overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
+
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = "Cancel";
+  cancel.style.background = "transparent";
+  cancel.style.color = dark ? "#e6edf3" : "#24292f";
+  cancel.style.border = "1px solid " + (dark ? "#30363d" : "#d0d7de");
+
+  const confirm = document.createElement("button");
+  confirm.type = "button";
+  confirm.textContent = isOwn ? "⚡ Clone" : "⚡ Fork & Clone";
+  confirm.style.background = "#238636";
+  confirm.style.color = "#ffffff";
+  confirm.style.border = "1px solid #2ea043";
+
+  cancel.addEventListener("click", () => {
+    clearTimeout(revertTimer);
+    removeConfirm();
+    setIdle(btn);
+  });
+  confirm.addEventListener("click", () => {
+    clearTimeout(revertTimer);
+    removeConfirm();
+    startFlow(btn);
+  });
+
+  panel.appendChild(label);
+  panel.appendChild(cancel);
+  panel.appendChild(confirm);
+  document.body.appendChild(panel);
+  applyPosition(panel);
+
+  clearTimeout(revertTimer);
+  revertTimer = setTimeout(() => {
+    removeConfirm();
+    const current = document.getElementById(BUTTON_ID);
+    if (current) setIdle(current);
+  }, 12000);
+}
+
 function onButtonClick(event) {
   const btn = event.currentTarget;
   if (state === "running") return; // ignore rapid double-clicks
@@ -179,7 +251,7 @@ function onButtonClick(event) {
     return;
   }
   clearTimeout(revertTimer);
-  startFlow(btn);
+  showConfirm(btn);
 }
 
 function injectOrRemoveButton() {
@@ -208,6 +280,7 @@ function onSoftNavigation() {
     return;
   }
   lastPathname = location.pathname;
+  removeConfirm();
   if (state !== "running") state = "idle";
   clearTimeout(revertTimer);
   injectOrRemoveButton();
