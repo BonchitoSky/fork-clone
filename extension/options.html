@@ -146,6 +146,27 @@
     .summary { font-size: 13px; margin-top: 12px; }
     .summary.ok { color: var(--ok); }
     .summary.bad { color: var(--bad); }
+
+    details.security {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    details.security summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text);
+      font-size: 12px;
+      user-select: none;
+    }
+    details.security h3 { font-size: 12px; margin: 12px 0 4px; color: var(--text); }
+    details.security ul { margin: 4px 0; padding-left: 18px; }
+    details.security li { margin: 3px 0; }
+    details.security .good { color: var(--ok); }
+    details.security .risk { color: var(--bad); }
   </style>
 </head>
 <body>
@@ -169,6 +190,27 @@
           — classic token with the <code>repo</code> scope (pre-selected).
           Stored only on this computer, never synced.
         </p>
+        <details class="security">
+          <summary>🔒 Is my token safe here?</summary>
+          <h3 class="good">Why this extension is safe to trust with it</h3>
+          <ul>
+            <li>The token is kept in <code>chrome.storage.local</code> — it stays on <strong>this computer only</strong> and is never synced to other devices or any server.</li>
+            <li>It is sent to exactly one place: <code>api.github.com</code>, always over HTTPS. No other site or server ever sees it.</li>
+            <li>It is never embedded in cloned repos or git remotes — pushing uses Git Credential Manager's own login instead.</li>
+            <li>The code is open source, so you can verify all of the above yourself.</li>
+          </ul>
+          <h3 class="risk">Never do this with a token ❌</h3>
+          <ul>
+            <li>Send it in a chat, email, Discord message, or screenshot.</li>
+            <li>Commit it to a repository — even a private one. (GitHub auto-revokes classic tokens it detects in public pushes.)</li>
+            <li>Enter it on any website that isn't <code>github.com</code>.</li>
+          </ul>
+          <h3>Precaution</h3>
+          <ul>
+            <li>Set an expiration of <strong>30–90 days</strong> instead of “No expiration” — a leaked token then dies on its own. Renewing it here takes 20 seconds.</li>
+            <li>If you ever suspect a leak, revoke it instantly at <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">github.com/settings/tokens</a>.</li>
+          </ul>
+        </details>
       </div>
 
       <div class="field">

@@ -112,6 +112,39 @@ out of `git remote -v` and out of any files on disk.)
 
 ---
 
+## 🔒 Is my token safe with this extension?
+
+**Why it's safe to paste your token here:**
+
+- The token is stored in `chrome.storage.local` — it stays on **your computer
+  only** and is never synced to other devices or uploaded to any server.
+- It is sent to exactly one place: `api.github.com`, always over HTTPS.
+  No other website or server ever sees it.
+- It is never embedded in cloned repos or git remotes — pushing uses the
+  Git Credential Manager's own sign-in instead, so the token never touches
+  your disk outside Chrome's storage.
+- This project is open source — you can read every line that handles the
+  token ([options.js](extension/options.js), [background.js](extension/background.js))
+  and verify the claims above yourself.
+
+**Never do this with a token ❌**
+
+- Send it in a chat, email, Discord message, or screenshot.
+- Commit it to a repository — even a private one. (GitHub automatically
+  revokes classic tokens it detects in public pushes.)
+- Enter it on any website that isn't `github.com`.
+
+**Precautions**
+
+- Set an expiration of **30–90 days** instead of "No expiration" — a leaked
+  token then dies on its own. Renewing takes 20 seconds: generate a new one,
+  paste it in options, Test & Save.
+- If you ever suspect a leak, revoke the token immediately at
+  <https://github.com/settings/tokens> — cloning and the extension stop
+  working until you paste a fresh one, and nothing else breaks.
+
+---
+
 ## Troubleshooting
 
 | Button shows | Meaning | Fix |
