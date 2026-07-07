@@ -143,6 +143,40 @@ out of `git remote -v` and out of any files on disk.)
   <https://github.com/settings/tokens> — cloning and the extension stop
   working until you paste a fresh one, and nothing else breaks.
 
+## 🛡 Security model (for the technically curious)
+
+The risky component in any design like this is the native companion: a
+channel where browser messages become program execution. Here is how each
+link in that chain is locked down:
+
+- **Only this extension can talk to the companion.** Chrome routes native
+  messaging exclusively to the extension ID pinned in the host manifest's
+  `allowed_origins`. Websites cannot use the API at all, and other
+  extensions don't match the pin.
+- **The companion validates everything it receives**
+  ([host.ps1](companion/host.ps1)): clone URLs must match
+  `https://github.com/owner/repo(.git)` exactly — no other domains, no SSH,
+  no redirects; repo names must match `^[\w.-]+$` with `.` and `..`
+  rejected (blocks path traversal); the target folder must be an absolute
+  path. Oversized (>1 MB) or malformed messages are dropped.
+- **No shell interpolation.** Arguments are passed to git as an argument
+  array with an explicit `--` end-of-options separator — there is no string
+  a message could contain that becomes a flag or a second command.
+- **Minimal permissions.** The extension asks only for `storage`,
+  `nativeMessaging`, `api.github.com`, and a content script on
+  `github.com`. Nothing else.
+- **No dependencies, no build step, no remote code.** Every line that runs
+  is in this repo, and Manifest V3's CSP forbids loading remote scripts.
+- **Verify it yourself:** `chrome://extensions` → Fork & Clone → *Inspect
+  views: service worker* → Network tab → do a fork. The only requests you
+  will see go to `api.github.com`.
+
+Two honest limitations: malware already running as your Windows user could
+read the stored token or alter these files (the same trust level as your
+browser's saved passwords — mitigate with short token expirations), and
+while *cloning* a repository never executes its code, whatever you do with
+the code afterwards is up to you.
+
 ---
 
 ## Troubleshooting

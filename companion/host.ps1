@@ -75,7 +75,7 @@ function Invoke-Clone($git, $url, $target) {
     $ErrorActionPreference = 'Continue'
     $lastError = ''
     for ($attempt = 1; $attempt -le 3; $attempt++) {
-        $output = (& $git clone $url $target 2>&1 | Out-String)
+        $output = (& $git clone -- $url $target 2>&1 | Out-String)
         if ($LASTEXITCODE -eq 0) {
             $ErrorActionPreference = $prevEap
             return @{ ok = $true }

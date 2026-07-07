@@ -31,9 +31,15 @@ posGrid.addEventListener("click", (e) => {
 });
 
 function row(ok, text) {
-  const cls = ok ? "ok" : "bad";
-  const mark = ok ? "✓" : "✗";
-  return '<div class="row ' + cls + '"><span class="mark">' + mark + "</span><span>" + text + "</span></div>";
+  const div = document.createElement("div");
+  div.className = "row " + (ok ? "ok" : "bad");
+  const mark = document.createElement("span");
+  mark.className = "mark";
+  mark.textContent = ok ? "✓" : "✗";
+  const body = document.createElement("span");
+  body.textContent = text;
+  div.append(mark, body);
+  return div;
 }
 
 async function checkToken(token) {
@@ -77,7 +83,7 @@ function checkFolder(folder) {
 async function testAndSave() {
   button.disabled = true;
   results.className = "visible";
-  results.innerHTML = "Testing…";
+  results.textContent = "Testing…";
   const token = tokenInput.value.trim();
   const folder = folderInput.value.trim();
 
@@ -89,20 +95,24 @@ async function testAndSave() {
   await chrome.storage.local.set(toSave);
 
   const allOk = tokenCheck.ok && companionCheck.ok && folderCheck.ok;
-  results.innerHTML =
-    row(tokenCheck.ok, tokenCheck.text) +
-    row(companionCheck.ok, companionCheck.text) +
-    row(folderCheck.ok, folderCheck.text) +
-    (allOk
-      ? '<p class="summary ok">Saved. You\'re ready — open any GitHub repo and click the button.</p>'
-      : '<p class="summary bad">Saved, but fix the ✗ items above before using the button.</p>');
+  const summary = document.createElement("p");
+  summary.className = "summary " + (allOk ? "ok" : "bad");
+  summary.textContent = allOk
+    ? "Saved. You're ready — open any GitHub repo and click the button."
+    : "Saved, but fix the ✗ items above before using the button.";
+  results.replaceChildren(
+    row(tokenCheck.ok, tokenCheck.text),
+    row(companionCheck.ok, companionCheck.text),
+    row(folderCheck.ok, folderCheck.text),
+    summary
+  );
   button.disabled = false;
 }
 
 button.addEventListener("click", () => {
   testAndSave().catch((e) => {
     results.className = "visible";
-    results.innerHTML = row(false, "Unexpected error: " + e.message);
+    results.replaceChildren(row(false, "Unexpected error: " + e.message));
     button.disabled = false;
   });
 });
