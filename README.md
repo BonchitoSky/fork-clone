@@ -14,6 +14,46 @@ It has two parts that you install once:
 Everything runs on your computer. The only server contacted is
 `api.github.com`, using your own token. Nothing is sent anywhere else.
 
+## Why I built this
+
+Contributing to open source has a small but persistent friction: fork the
+repository in the browser, copy the clone URL, open a terminal, run
+`git clone`, and navigate to the folder — a five-step ritual repeated dozens
+of times a month. Fork & Clone collapses it into a single click.
+
+Beyond solving the annoyance, this project was a deliberate exercise in
+crossing the browser/OS boundary safely. Chrome extensions are intentionally
+sandboxed away from the filesystem, so doing this *properly* — a real
+`git clone` with full history and a push-ready remote, not a ZIP download —
+meant building a native-messaging bridge and designing the trust model
+around it (see the security section below).
+
+## Engineering challenges
+
+**The native messaging protocol is unforgiving.** Each message is a 4-byte
+little-endian length prefix followed by UTF-8 JSON over raw stdio — and a
+single stray byte on stdout corrupts the channel permanently. Three separate
+incidents drove this home during development: a UTF-8 byte-order mark
+silently prepended by a .NET stream writer shifted the length prefix and
+made the host appear dead; PowerShell 5.1 converts git's ordinary stderr
+progress output into terminating errors the moment it is redirected, killing
+clones that were actually succeeding; and PowerShell's default file encoding
+writes a BOM that makes Chrome reject the host manifest outright.
+
+**Native messaging failures are nearly unobservable.** When the channel
+fails, Chrome reports only "Specified native messaging host not found" —
+with no indication whether the registry key, the manifest file, its
+encoding, or the origin allowlist is at fault. Debugging required control
+probes: querying other hosts known to be registered on the machine to
+isolate which layer was actually broken, turning an opaque failure into a
+binary search.
+
+**GitHub forks are created asynchronously.** The fork API returns before the
+repository's git data exists, so an immediate clone can fail against a fork
+that is still materializing. The race is absorbed at two independent layers:
+the extension polls the fork until GitHub reports it ready, and the
+companion retries the clone with backoff.
+
 ---
 
 ## Setup (about 5 minutes, done once)
