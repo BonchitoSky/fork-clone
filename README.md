@@ -4,7 +4,7 @@ One click on any GitHub repository page → the repo is **forked to your GitHub
 account** and **cloned as a real git repository** into a folder on your PC.
 No ZIP files, no copying URLs, no terminal.
 
-It has two parts that you install once:
+It has two parts that you install once: 
 
 | Part | What it is | Why it's needed |
 |---|---|---|
